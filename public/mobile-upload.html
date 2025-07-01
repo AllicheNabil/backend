@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uploader un Document</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        p {
+            color: #666;
+        }
+
+        #upload-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Uploader un Document</h1>
+        <p>Prenez une photo du document à ajouter au dossier du patient.</p>
+        <input type="file" id="file-input" accept="image/*" multiple>
+        <button id="upload-btn">Prendre une photo</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const statusEl = document.getElementById('status');
+
+        const params = new URLSearchParams(window.location.search);
+        const sessionId = params.get('session');
+
+        if (!sessionId) {
+            statusEl.textContent = "Erreur : Session non trouvée.";
+            statusEl.style.color = 'red';
+            uploadBtn.disabled = true;
+        }
+
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                uploadFiles(files);
+            }
+        });
+
+        async function uploadFiles(files) {
+            statusEl.textContent = `Upload de ${files.length} fichier(s) en cours...`;
+            statusEl.style.color = 'orange';
+            uploadBtn.disabled = true;
+
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('document', files[i]);
+            }
+            formData.append('sessionId', sessionId);
+
+            try {
+                const response = await fetch('/patient/mobile-upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    statusEl.textContent = `Upload des ${files.length} fichiers réussi ! Vous pouvez fermer cette page.`;
+                    statusEl.style.color = 'green';
+                } else {
+                    const error = await response.json();
+                    statusEl.textContent = `Échec de l'upload : ${error.error || 'Erreur inconnue'}`;
+                    statusEl.style.color = 'red';
+                    uploadBtn.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = "Erreur de connexion au serveur.";
+                statusEl.style.color = 'red';
+                uploadBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>
