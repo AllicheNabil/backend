@@ -8,6 +8,43 @@ const db = new sqlite3.Database('./medDatabase.db', (err) => {
     console.log('Connected to the medDatabase SQLite database.');
 });
 
+// Promisify SQLite methods
+const dbGet = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.get(sql, params, (err, result) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
+    });
+};
+
+const dbAll = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+};
+
+const dbRun = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve({ lastID: this.lastID, changes: this.changes });
+            }
+        });
+    });
+};
+
 // Create tables
 db.serialize(() => {
     // Create Users table
@@ -116,4 +153,4 @@ db.serialize(() => {
     )`);
 });
 
-module.exports = db;
+module.exports = { db, dbGet, dbAll, dbRun };
