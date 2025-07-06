@@ -20,7 +20,7 @@ app.use(express.json());
 
 // Middleware CORS pour permettre à votre application Flutter de se connecter
 // Pour le développement, '*' est acceptable. Pour la production, spécifiez des origines permises.
-app.use(cors());
+app.use(cors({ origin: "*" }));
 
 // Servir les fichiers statiques du dossier 'uploads'
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
