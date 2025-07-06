@@ -1,12 +1,13 @@
 // routes/patient/medicationRoutes.js
 const express = require("express");
-const { dbGet, dbAll, dbRun } = require("../../db"); // Importez les méthodes promisifiées
+const { dbAll, dbRun } = require("../../db");
 
 const router = express.Router({ mergeParams: true });
 
 // POST un nouveau médicament pour un patient
 router.post("/", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
   const m = req.body;
   console.log("Corps reçu :", req.body);
 
@@ -21,8 +22,8 @@ router.post("/", async (req, res) => {
   }
 
   const query = `
-    INSERT INTO medications (patient_id, medication_name, medication_date, medication_duration, dosage_form, times_per_day, amount)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO medications (patient_id, medication_name, medication_date, medication_duration, dosage_form, times_per_day, amount, userId)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const values = [
     patientId,
@@ -32,6 +33,7 @@ router.post("/", async (req, res) => {
     m.dosage_form,
     m.times_per_day,
     m.amount,
+    userId,
   ];
 
   try {
@@ -49,6 +51,7 @@ router.post("/", async (req, res) => {
 // GET tous les médicaments pour un patient
 router.get("/", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
 
   if (isNaN(patientId)) {
     return res.status(400).json({ error: "ID du patient invalide." });
@@ -56,8 +59,8 @@ router.get("/", async (req, res) => {
 
   try {
     const rows = await dbAll(
-      `SELECT * FROM medications WHERE patient_id = ? ORDER BY medication_id DESC`,
-      [patientId]
+      `SELECT * FROM medications WHERE patient_id = ? AND userId = ? ORDER BY id DESC`,
+      [patientId, userId]
     );
     res.json(rows);
   } catch (err) {
@@ -69,6 +72,7 @@ router.get("/", async (req, res) => {
 // GET médicaments filtrés par nom pour un patient
 router.get("/search", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
   const name = `%${req.query.name || ""}%`;
 
   if (isNaN(patientId))
@@ -76,8 +80,8 @@ router.get("/search", async (req, res) => {
 
   try {
     const rows = await dbAll(
-      `SELECT * FROM medications WHERE patient_id = ? AND medication_name LIKE ? ORDER BY medication_id DESC`,
-      [patientId, name]
+      `SELECT * FROM medications WHERE patient_id = ? AND userId = ? AND medication_name LIKE ? ORDER BY id DESC`,
+      [patientId, userId, name]
     );
     res.json(rows);
   } catch (err) {
@@ -85,7 +89,5 @@ router.get("/search", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// TODO: Ajouter des routes PUT et DELETE pour les médicaments si nécessaire
 
 module.exports = router;

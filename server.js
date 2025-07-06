@@ -5,6 +5,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const routes = require("./routes/routes"); // Importez les routes des patients
+const authRoutes = require("./routes/authRoutes"); // Importez les routes d'authentification
 
 const app = express();
 const server = http.createServer(app); // Créez un serveur HTTP à partir de l'application Express
@@ -28,6 +29,7 @@ app.use(express.static(path.join(__dirname, "public")));
 // Utiliser les routes des patients
 // Toutes les routes définies dans patients.js seront préfixées par '/patient'
 app.use("/patient", routes(io)); // Passe l'instance io au routeur des patients
+app.use("/api/auth", authRoutes);
 
 // Logique Socket.IO
 io.on("connection", (socket) => {

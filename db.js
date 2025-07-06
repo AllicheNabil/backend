@@ -1,138 +1,119 @@
-// db.js
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+const sqlite3 = require('sqlite3').verbose();
 
-// Chemin vers le fichier de la base de données.
-// Il est recommandé d'utiliser un chemin absolu pour éviter les problèmes de chemin relatif.
-const DB_PATH = path.join(__dirname, "medDatabase.db");
-
-// Créez une nouvelle instance de la base de données
-// Si le fichier n'existe pas, sqlite3 le créera.
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error("Error opening database:", err.message);
-  } else {
-    console.log("Connected to the SQLite database.");
-    // Initialiser les tables si elles n'existent pas
-    db.serialize(() => {
-      db.run(`
-                CREATE TABLE IF NOT EXISTS patients (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    creation_date TEXT,
-                    name TEXT UNIQUE,
-                    sex TEXT,
-                    date_of_birth TEXT,
-                    phone TEXT,
-                    adresse TEXT,
-                    personal_medical_history TEXT,
-                    familial_medical_history TEXT,
-                    current_medical_conditions TEXT,
-                    current_medications TEXT,
-                    allergies TEXT,
-                    surgeries TEXT,
-                    vaccines TEXT
-                );
-            `);
-
-      db.run(`
-                CREATE TABLE IF NOT EXISTS visits (
-                    visit_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    patient_id INTEGER NOT NULL,
-                    visit_reason TEXT,
-                    visit_weight TEXT,
-                    visit_weight_percentile TEXT,
-                    visit_height TEXT,
-                    visit_height_percentile TEXT,
-                    visit_head_circumference TEXT,
-                    visit_head_circumference_percentile TEXT,
-                    visit_bmi TEXT,
-                    visit_physical_examination TEXT,
-                    visit_diagnosis TEXT,
-                    visit_date TEXT,
-                    visit_hour TEXT,
-                    FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
-                );
-            `);
-
-      db.run(`
-                CREATE TABLE IF NOT EXISTS medications (
-                    medication_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    patient_id INTEGER NOT NULL,
-                    medication_name TEXT,
-                    medication_date TEXT,
-                    medication_duration TEXT,
-                    dosage_form TEXT,
-                    times_per_day TEXT,
-                    amount TEXT,
-                    FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
-                );
-            `);
-
-      db.run(`
-                CREATE TABLE IF NOT EXISTS lab_tests (
-                    lab_test_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    patient_id INTEGER NOT NULL,
-                    lab_test_name TEXT,
-                    lab_test_date TEXT,
-                    FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
-                );
-            `);
-
-      db.run(`
-                CREATE TABLE IF NOT EXISTS documents (
-                    document_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    patient_id INTEGER NOT NULL,
-                    document_name TEXT NOT NULL,
-                    document_path TEXT NOT NULL,
-                    upload_date TEXT NOT NULL,
-                    FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
-                );
-            `);
-      db.run(`
-                CREATE TABLE IF NOT EXISTS waiting_room (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    patient_id INTEGER NOT NULL,
-                    arrival_timestamp TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'en attente', -- Valeurs possibles: 'en attente', 'appelé', 'en consultation', 'terminé'
-                    call_timestamp TEXT, -- Heure à laquelle le patient a été appelé
-                    FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE
-                );
-            `);
-
-      console.log("All necessary tables checked/created.");
-    });
-  }
+// Connect to SQLite database
+const db = new sqlite3.Database('./medDatabase.db', (err) => {
+    if (err) {
+        console.error(err.message);
+    }
+    console.log('Connected to the medDatabase SQLite database.');
 });
 
-// Promisify db methods for async/await usage
-const dbGet = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(row);
-      }
-    });
-  });
-};
+// Create tables
+db.serialize(() => {
+    // Create Users table
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL
+    )`);
 
-const dbAll = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-};
+    // Create Patients table
+    db.run(`CREATE TABLE IF NOT EXISTS patients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        dob TEXT,
+        gender TEXT,
+        phone TEXT,
+        email TEXT,
+        address TEXT,
+        profession TEXT,
+        maritalStatus TEXT,
+        cnam TINYINT,
+        assurance TEXT,
+        reference TEXT,
+        notes TEXT,
+        history TEXT,
+        familyHistory TEXT,
+        gynHistory TEXT,
+        pregnancyHistory TEXT,
+        childhoodHistory TEXT,
+        vaccinationHistory TEXT,
+        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        userId INTEGER,
+        FOREIGN KEY (userId) REFERENCES users (id)
+    )`);
 
-const dbRun = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve(this); // 'this' contains lastID, changes
-    });
-  });
-};
+    // Create Visits table
+    db.run(`CREATE TABLE IF NOT EXISTS visits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER,
+        visit_date TEXT,
+        reason TEXT,
+        diagnosis TEXT,
+        notes TEXT,
+        userId INTEGER,
+        FOREIGN KEY (patient_id) REFERENCES patients (id),
+        FOREIGN KEY (userId) REFERENCES users (id)
+    )`);
 
-module.exports = { db, dbGet, dbAll, dbRun };
+    // Create Waiting Room table
+    db.run(`CREATE TABLE IF NOT EXISTS waiting_room (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER,
+        arrival_time TEXT,
+        status TEXT,
+        userId INTEGER,
+        FOREIGN KEY (patient_id) REFERENCES patients (id),
+        FOREIGN KEY (userId) REFERENCES users (id)
+    )`);
+
+    // Create Documents table
+    db.run(`CREATE TABLE IF NOT EXISTS documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER,
+        document_name TEXT,
+        document_path TEXT,
+        upload_date TEXT,
+        userId INTEGER,
+        FOREIGN KEY (patient_id) REFERENCES patients (id),
+        FOREIGN KEY (userId) REFERENCES users (id)
+    )`);
+
+    // Create Lab Tests table
+    db.run(`CREATE TABLE IF NOT EXISTS lab_tests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER,
+        test_name TEXT,
+        test_date TEXT,
+        results TEXT,
+        userId INTEGER,
+        FOREIGN KEY (patient_id) REFERENCES patients (id),
+        FOREIGN KEY (userId) REFERENCES users (id)
+    )`);
+
+    // Create Prescriptions table
+    db.run(`CREATE TABLE IF NOT EXISTS prescriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id INTEGER,
+        medication_id INTEGER,
+        dosage TEXT,
+        frequency TEXT,
+        start_date TEXT,
+        end_date TEXT,
+        notes TEXT,
+        userId INTEGER,
+        FOREIGN KEY (patient_id) REFERENCES patients (id),
+        FOREIGN KEY (medication_id) REFERENCES medications (id),
+        FOREIGN KEY (userId) REFERENCES users (id)
+    )`);
+
+    // Create Medications table
+    db.run(`CREATE TABLE IF NOT EXISTS medications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        description TEXT
+    )`);
+});
+
+module.exports = db;

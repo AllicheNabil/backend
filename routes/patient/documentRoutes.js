@@ -49,6 +49,7 @@ module.exports = (io) => {
     uploadDesktop.single("document"),
     async (req, res) => {
       const patientId = req.params.patientId;
+      const userId = req.user.id;
 
       if (!req.file) {
         return res
@@ -64,10 +65,10 @@ module.exports = (io) => {
       const upload_date = new Date().toISOString().split("T")[0];
 
       const query = `
-          INSERT INTO documents (patient_id, document_name, document_path, upload_date)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO documents (patient_id, document_name, document_path, upload_date, userId)
+          VALUES (?, ?, ?, ?, ?)
       `;
-      const values = [patientId, document_name, document_path, upload_date];
+      const values = [patientId, document_name, document_path, upload_date, userId];
 
       try {
         const result = await dbRun(query, values);
@@ -96,6 +97,7 @@ module.exports = (io) => {
   // GET: Récupérer la liste des documents pour un patient
   router.get("/:patientId/documents", async (req, res) => {
     const patientId = req.params.patientId;
+    const userId = req.user.id;
 
     if (isNaN(patientId)) {
       return res.status(400).json({ error: "ID du patient invalide." });
@@ -103,8 +105,8 @@ module.exports = (io) => {
 
     try {
       const rows = await dbAll(
-        `SELECT document_id, patient_id, document_name, document_path, upload_date FROM documents WHERE patient_id = ? ORDER BY document_id DESC`,
-        [patientId]
+        `SELECT id, patient_id, document_name, document_path, upload_date FROM documents WHERE patient_id = ? AND userId = ? ORDER BY id DESC`,
+        [patientId, userId]
       );
       res.json(rows);
     } catch (err) {
@@ -116,6 +118,7 @@ module.exports = (io) => {
   // DELETE: Supprimer un document
   router.delete("/:patientId/documents/:documentId", async (req, res) => {
     const { patientId, documentId } = req.params;
+    const userId = req.user.id;
 
     if (isNaN(documentId) || isNaN(patientId)) {
       return res
@@ -126,8 +129,8 @@ module.exports = (io) => {
     try {
       // Étape 1: Récupérer le chemin du document
       const doc = await dbGet(
-        "SELECT document_path FROM documents WHERE document_id = ? AND patient_id = ?",
-        [documentId, patientId]
+        "SELECT document_path FROM documents WHERE id = ? AND patient_id = ? AND userId = ?",
+        [documentId, patientId, userId]
       );
       if (!doc) {
         return res
@@ -158,7 +161,7 @@ module.exports = (io) => {
 
       // Étape 3: Supprimer l'enregistrement du document de la base de données
       const result = await dbRun(
-        "DELETE FROM documents WHERE document_id = ?",
+        "DELETE FROM documents WHERE id = ?",
         [documentId]
       );
       res.json({
@@ -177,8 +180,9 @@ module.exports = (io) => {
   router.post("/:patientId/documents/upload-session", async (req, res) => {
     // Note: patientId est dans req.params ici
     const { patientId } = req.params;
+    const userId = req.user.id;
     const sessionId = uuidv4();
-    mobileUploadSessions.set(sessionId, patientId);
+    mobileUploadSessions.set(sessionId, { patientId, userId });
 
     setTimeout(() => {
       mobileUploadSessions.delete(sessionId);
@@ -201,7 +205,7 @@ module.exports = (io) => {
       if (!sessionId || !mobileUploadSessions.has(sessionId))
         return res.status(403).json({ error: "Session invalide ou expirée." });
 
-      const patientId = mobileUploadSessions.get(sessionId);
+      const { patientId, userId } = mobileUploadSessions.get(sessionId);
       const patientUploadDir = path.join(
         __dirname,
         "..",
@@ -227,8 +231,8 @@ module.exports = (io) => {
 
           await fs.writeFile(filePathOnDisk, fileBuffer);
           await dbRun(
-            `INSERT INTO documents (patient_id, document_name, document_path, upload_date) VALUES (?, ?, ?, ?)`,
-            [patientId, document_name, document_path, upload_date]
+            `INSERT INTO documents (patient_id, document_name, document_path, upload_date, userId) VALUES (?, ?, ?, ?, ?)`,
+            [patientId, document_name, document_path, upload_date, userId]
           );
         }
 

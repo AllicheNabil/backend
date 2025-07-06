@@ -7,24 +7,26 @@ const router = express.Router();
 // POST: Ajouter un patient à la salle d'attente
 router.post("/add", async (req, res) => {
   const { patient_id } = req.body;
+  const userId = req.user.id;
 
   if (!patient_id) {
     return res.status(400).json({ error: "Le champ 'patient_id' est requis." });
   }
 
   try {
-    // Vérifier si le patient existe
-    const patient = await dbGet("SELECT id FROM patients WHERE id = ?", [
+    // Vérifier si le patient existe et appartient à l'utilisateur
+    const patient = await dbGet("SELECT id FROM patients WHERE id = ? AND userId = ?", [
       patient_id,
+      userId,
     ]);
     if (!patient) {
       return res.status(404).json({ error: "Patient non trouvé." });
     }
 
-    // Vérifier si le patient n'est pas déjà activement dans la salle d'attente
+    // Vérifier si le patient n'est pas déjà activement dans la salle d'attente de cet utilisateur
     const existingEntry = await dbGet(
-      "SELECT id FROM waiting_room WHERE patient_id = ? AND status IN ('en attente', 'appelé', 'en consultation')",
-      [patient_id]
+      "SELECT id FROM waiting_room WHERE patient_id = ? AND userId = ? AND status IN ('en attente', 'appelé', 'en consultation')",
+      [patient_id, userId]
     );
     if (existingEntry) {
       return res
@@ -36,10 +38,10 @@ router.post("/add", async (req, res) => {
     const status = "en attente";
 
     const query = `
-      INSERT INTO waiting_room (patient_id, arrival_timestamp, status)
-      VALUES (?, ?, ?)
+      INSERT INTO waiting_room (patient_id, arrival_timestamp, status, userId)
+      VALUES (?, ?, ?, ?)
     `;
-    const result = await dbRun(query, [patient_id, arrival_timestamp, status]);
+    const result = await dbRun(query, [patient_id, arrival_timestamp, status, userId]);
     res.status(201).json({
       id: result.lastID,
       patient_id,
@@ -53,17 +55,18 @@ router.post("/add", async (req, res) => {
   }
 });
 
-// GET: Récupérer tous les patients actifs dans la salle d'attente
+// GET: Récupérer tous les patients actifs dans la salle d'attente de l'utilisateur
 router.get("/", async (req, res) => {
+  const userId = req.user.id;
   const query = `
     SELECT wr.id, wr.patient_id, p.name as patient_name, wr.arrival_timestamp, wr.status, wr.call_timestamp
     FROM waiting_room wr
     JOIN patients p ON wr.patient_id = p.id
-    WHERE wr.status != 'terminé'
+    WHERE wr.userId = ? AND wr.status != 'terminé'
     ORDER BY wr.arrival_timestamp ASC
   `;
   try {
-    const rows = await dbAll(query);
+    const rows = await dbAll(query, [userId]);
     res.json(rows);
   } catch (err) {
     console.error("Error fetching waiting room:", err.message);
@@ -75,6 +78,7 @@ router.get("/", async (req, res) => {
 router.put("/:entryId/status", async (req, res) => {
   const { entryId } = req.params;
   const { status } = req.body;
+  const userId = req.user.id;
 
   if (!status) {
     return res.status(400).json({ error: "Le champ 'status' est requis." });
@@ -97,8 +101,8 @@ router.put("/:entryId/status", async (req, res) => {
     params.push(new Date().toISOString());
   }
 
-  query += " WHERE id = ?";
-  params.push(entryId);
+  query += " WHERE id = ? AND userId = ?";
+  params.push(entryId, userId);
 
   try {
     const result = await dbRun(query, params);
@@ -120,10 +124,12 @@ router.put("/:entryId/status", async (req, res) => {
 // DELETE: Retirer une entrée de la salle d'attente (ou la marquer comme terminée)
 router.delete("/:entryId", async (req, res) => {
   const { entryId } = req.params;
+  const userId = req.user.id;
 
   try {
-    const result = await dbRun("DELETE FROM waiting_room WHERE id = ?", [
+    const result = await dbRun("DELETE FROM waiting_room WHERE id = ? AND userId = ?", [
       entryId,
+      userId,
     ]);
     if (result.changes === 0) {
       return res

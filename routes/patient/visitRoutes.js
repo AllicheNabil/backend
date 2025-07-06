@@ -1,13 +1,13 @@
 // routes/patient/visitRoutes.js
 const express = require("express");
-const { dbGet, dbAll, dbRun } = require("../../db"); // Importez les méthodes promisifiées
+const { dbAll, dbRun } = require("../../db");
 
-// Utiliser { mergeParams: true } pour accéder aux paramètres du routeur parent (patientId)
 const router = express.Router({ mergeParams: true });
 
 // POST une nouvelle visite pour un patient
 router.post("/", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
   const v = req.body;
 
   if (isNaN(patientId)) {
@@ -21,8 +21,8 @@ router.post("/", async (req, res) => {
   }
 
   const query = `
-    INSERT INTO visits (patient_id, visit_reason, visit_weight, visit_weight_percentile, visit_height, visit_height_percentile, visit_head_circumference, visit_head_circumference_percentile, visit_bmi, visit_physical_examination, visit_diagnosis, visit_date, visit_hour)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO visits (patient_id, visit_reason, visit_weight, visit_weight_percentile, visit_height, visit_height_percentile, visit_head_circumference, visit_head_circumference_percentile, visit_bmi, visit_physical_examination, visit_diagnosis, visit_date, visit_hour, userId)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const values = [
     patientId,
@@ -38,6 +38,7 @@ router.post("/", async (req, res) => {
     v.visit_diagnosis,
     v.visit_date,
     v.visit_hour,
+    userId,
   ];
 
   try {
@@ -57,6 +58,7 @@ router.post("/", async (req, res) => {
 // GET toutes les visites pour un patient
 router.get("/", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
   console.log(`GET /visits/ for patientId: ${patientId}`);
 
   if (isNaN(patientId)) {
@@ -66,8 +68,8 @@ router.get("/", async (req, res) => {
 
   try {
     const rows = await dbAll(
-      `SELECT * FROM visits WHERE patient_id = ? ORDER BY visit_id DESC`,
-      [patientId]
+      `SELECT * FROM visits WHERE patient_id = ? AND userId = ? ORDER BY id DESC`,
+      [patientId, userId]
     );
     console.log(`Fetched ${rows.length} visits for patientId: ${patientId}`);
     res.json(rows);
@@ -76,7 +78,5 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// TODO: Ajouter des routes PUT et DELETE pour les visites si nécessaire
 
 module.exports = router;

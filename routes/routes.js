@@ -1,5 +1,6 @@
 // routes/patients.js
 const express = require("express");
+const authMiddleware = require("../authMiddleware");
 
 // Importez les sous-routeurs
 const patientRoutes = require("./patient/patientRoutes");
@@ -12,6 +13,9 @@ const waitingRoomRoutes = require("./patient/waitingRoomRoutes");
 module.exports = (io) => {
   // Le routeur principal est maintenant une fonction qui prend 'io'
   const router = express.Router();
+
+  // Apply authentication middleware to all patient-related routes
+  router.use(authMiddleware);
 
   // Middleware pour parser le JSON dans le corps des requêtes
   router.use(express.json());

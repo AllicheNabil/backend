@@ -1,12 +1,13 @@
 // routes/patient/labTestRoutes.js
 const express = require("express");
-const { dbGet, dbAll, dbRun } = require("../../db"); // Importez les méthodes promisifiées
+const { dbAll, dbRun } = require("../../db");
 
 const router = express.Router({ mergeParams: true });
 
 // POST un nouveau test de laboratoire pour un patient
 router.post("/", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
   const lt = req.body;
   console.log("Corps reçu :", req.body);
 
@@ -21,10 +22,10 @@ router.post("/", async (req, res) => {
   }
 
   const query = `
-    INSERT INTO lab_tests (patient_id, lab_test_name, lab_test_date)
-    VALUES (?, ?, ?)
+    INSERT INTO lab_tests (patient_id, lab_test_name, lab_test_date, userId)
+    VALUES (?, ?, ?, ?)
   `;
-  const values = [patientId, lt.lab_test_name, lt.lab_test_date];
+  const values = [patientId, lt.lab_test_name, lt.lab_test_date, userId];
 
   try {
     const result = await dbRun(query, values);
@@ -41,6 +42,7 @@ router.post("/", async (req, res) => {
 // GET tous les tests de laboratoire pour un patient
 router.get("/", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
 
   if (isNaN(patientId)) {
     return res.status(400).json({ error: "ID du patient invalide." });
@@ -48,8 +50,8 @@ router.get("/", async (req, res) => {
 
   try {
     const rows = await dbAll(
-      `SELECT * FROM lab_tests WHERE patient_id = ? ORDER BY lab_test_id DESC`,
-      [patientId]
+      `SELECT * FROM lab_tests WHERE patient_id = ? AND userId = ? ORDER BY id DESC`,
+      [patientId, userId]
     );
     res.json(rows);
   } catch (err) {
@@ -61,6 +63,7 @@ router.get("/", async (req, res) => {
 // GET tests de laboratoire filtrés par nom pour un patient
 router.get("/search", async (req, res) => {
   const patientId = req.params.patientId;
+  const userId = req.user.id;
   const name = `%${req.query.name || ""}%`;
 
   if (isNaN(patientId))
@@ -68,8 +71,8 @@ router.get("/search", async (req, res) => {
 
   try {
     const rows = await dbAll(
-      `SELECT * FROM lab_tests WHERE patient_id = ? AND lab_test_name LIKE ? ORDER BY lab_test_id DESC`,
-      [patientId, name]
+      `SELECT * FROM lab_tests WHERE patient_id = ? AND userId = ? AND lab_test_name LIKE ? ORDER BY id DESC`,
+      [patientId, userId, name]
     );
     res.json(rows);
   } catch (err) {
@@ -77,7 +80,5 @@ router.get("/search", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// TODO: Ajouter des routes PUT et DELETE pour les tests de laboratoire si nécessaire
 
 module.exports = router;

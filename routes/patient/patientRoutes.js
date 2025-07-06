@@ -4,11 +4,13 @@ const { dbGet, dbAll, dbRun } = require("../../db"); // Importez les méthodes p
 
 const router = express.Router();
 
-// GET tous les patients
+// GET tous les patients pour l'utilisateur authentifié
 router.get("/", async (req, res) => {
+  const userId = req.user.id;
   try {
     const rows = await dbAll(
-      "SELECT * FROM patients ORDER BY name COLLATE NOCASE ASC"
+      "SELECT * FROM patients WHERE userId = ? ORDER BY name COLLATE NOCASE ASC",
+      [userId]
     );
     res.json(rows);
   } catch (err) {
@@ -17,11 +19,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET patient par ID
+// GET patient par ID pour l'utilisateur authentifié
 router.get("/id/:id", async (req, res) => {
   const patientId = req.params.id;
+  const userId = req.user.id;
   try {
-    const row = await dbGet("SELECT * FROM patients WHERE id = ?", [patientId]);
+    const row = await dbGet("SELECT * FROM patients WHERE id = ? AND userId = ?", [patientId, userId]);
     if (!row) {
       return res.status(404).json({ error: "Patient non trouvé" });
     }
@@ -32,12 +35,14 @@ router.get("/id/:id", async (req, res) => {
   }
 });
 
-// GET patient par nom
+// GET patient par nom pour l'utilisateur authentifié
 router.get("/name/:name", async (req, res) => {
   const patientName = req.params.name;
+  const userId = req.user.id;
   try {
-    const row = await dbGet("SELECT * FROM patients WHERE name = ?", [
+    const row = await dbGet("SELECT * FROM patients WHERE name = ? AND userId = ?", [
       patientName,
+      userId,
     ]);
     if (!row) {
       return res.status(404).json({ error: "Patient non trouvé" });
@@ -49,9 +54,10 @@ router.get("/name/:name", async (req, res) => {
   }
 });
 
-// POST un nouveau patient
+// POST un nouveau patient pour l'utilisateur authentifié
 router.post("/", async (req, res) => {
   const p = req.body;
+  const userId = req.user.id;
   console.log("Corps reçu :", p);
 
   if (!p.name || !p.creation_date || !p.sex || !p.date_of_birth) {
@@ -62,8 +68,8 @@ router.post("/", async (req, res) => {
   }
 
   const query = `
-    INSERT INTO patients (creation_date, name, sex, date_of_birth, phone, adresse, personal_medical_history, familial_medical_history, current_medical_conditions, current_medications, allergies, surgeries, vaccines)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO patients (creation_date, name, sex, date_of_birth, phone, adresse, personal_medical_history, familial_medical_history, current_medical_conditions, current_medications, allergies, surgeries, vaccines, userId)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const values = [
     p.creation_date,
@@ -79,6 +85,7 @@ router.post("/", async (req, res) => {
     p.allergies,
     p.surgeries,
     p.vaccines,
+    userId,
   ];
 
   try {
@@ -97,9 +104,10 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT (Mise à jour) d'un patient par ID
+// PUT (Mise à jour) d'un patient par ID pour l'utilisateur authentifié
 router.put("/:id", async (req, res) => {
   const patientId = req.params.id;
+  const userId = req.user.id;
   const p = req.body;
 
   if (isNaN(patientId))
@@ -114,7 +122,7 @@ router.put("/:id", async (req, res) => {
     UPDATE patients SET creation_date = ?, name = ?, sex = ?, date_of_birth = ?, phone = ?, adresse = ?,
     personal_medical_history = ?, familial_medical_history = ?, current_medical_conditions = ?,
     current_medications = ?, allergies = ?, surgeries = ?, vaccines = ?
-    WHERE id = ?
+    WHERE id = ? AND userId = ?
   `;
   const values = [
     p.creation_date,
@@ -131,6 +139,7 @@ router.put("/:id", async (req, res) => {
     p.surgeries,
     p.vaccines,
     patientId,
+    userId,
   ];
 
   try {
@@ -153,15 +162,17 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE un patient par ID
+// DELETE un patient par ID pour l'utilisateur authentifié
 router.delete("/:id", async (req, res) => {
   const patientId = req.params.id;
+  const userId = req.user.id;
   if (isNaN(patientId))
     return res.status(400).json({ error: "ID du patient invalide." });
 
   try {
-    const result = await dbRun(`DELETE FROM patients WHERE id = ?`, [
+    const result = await dbRun(`DELETE FROM patients WHERE id = ? AND userId = ?`, [
       patientId,
+      userId,
     ]);
     if (result.changes === 0)
       return res.status(404).json({ error: "Patient non trouvé." });
