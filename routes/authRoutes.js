@@ -5,7 +5,7 @@ const db = require("../db");
 
 const router = express.Router();
 const saltRounds = 10; //the number of salt rounds to use for hashing
-const jwtSecret = process.env.jwtSecret;
+const jwtSecret = process.env.JWT_SECRET;
 // Register a new user
 router.post("/register", (req, res) => {
   console.log("Registering user:", req.body);
