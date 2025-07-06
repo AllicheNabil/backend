@@ -9,12 +9,15 @@ const authMiddleware = (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    console.log('Received token:', token);
 
     try {
         const decoded = jwt.verify(token, jwtSecret);
         req.user = decoded; // Add user payload to the request
+        console.log('Token decoded successfully:', decoded);
         next();
     } catch (ex) {
+        console.error('Token verification failed:', ex.message);
         res.status(400).json({ message: 'Invalid token.' });
     }
 };

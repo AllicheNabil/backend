@@ -56,6 +56,7 @@ router.post('/login', (req, res) => {
             }
 
             const token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: '1h' });
+            console.log('Generated token:', token);
             res.json({ token });
         });
     });
