@@ -7,7 +7,7 @@ const router = express.Router();
 const saltRounds = 10; //the number of salt rounds to use for hashing
 const jwtSecret = process.env.JWT_SECRET;
 // Register a new user
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   console.log("Registering user:", req.body);
   const { name, email, password } = req.body;
 
@@ -17,22 +17,18 @@ router.post("/register", (req, res) => {
       .json({ message: "Please provide name, email, and password" });
   }
 
-  bcrypt.hash(password, saltRounds, (err, hash) => {
-    if (err) {
-      return res.status(500).json({ message: "Error hashing password" });
-    }
-
+  try {
+    const hash = await bcrypt.hash(password, saltRounds);
     const sql = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
-    dbRun(sql, [name, email, hash], function (err) {
-      if (err) {
-        if (err.message.includes("UNIQUE constraint failed")) {
-          return res.status(409).json({ message: "Email already exists" });
-        }
-        return res.status(500).json({ message: "Error registering user" });
-      }
-      res.status(201).json({ id: this.lastID });
-    });
-  });
+    const result = await dbRun(sql, [name, email, hash]);
+    res.status(201).json({ id: result.lastID });
+  } catch (err) {
+    if (err.message.includes("UNIQUE constraint failed")) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+    console.error("Error registering user:", err);
+    return res.status(500).json({ message: "Error registering user" });
+  }
 });
 
 // Login a user
