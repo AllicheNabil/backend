@@ -5,7 +5,7 @@ const db = require('../db');
 
 const router = express.Router();
 const saltRounds = 10;
-const jwtSecret = 'your_super_secret_key'; // Change this in production!
+const jwtSecret = process.env.JWT_SECRET; // Change this in production!
 
 // Register a new user
 router.post('/register', (req, res) => {
