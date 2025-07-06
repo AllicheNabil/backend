@@ -1,4 +1,6 @@
 // server.js
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors"); // Pour permettre les requêtes depuis votre application Flutter
 const http = require("http");
