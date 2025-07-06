@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const jwtSecret = 'your_super_secret_key'; // Should be the same as in authRoutes.js
+const jwtSecret = 'a_very_secure_and_unique_secret_key_for_your_medical_app_2025'; // Should be the same as in authRoutes.js
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;

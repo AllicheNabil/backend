@@ -5,8 +5,8 @@ const db = require("../db");
 
 const router = express.Router();
 const saltRounds = 10;
-const jwtSecret = process.env.JWT_SECRET; // Change this in production!
-
+const jwtSecret =
+  "3f7f42b09d8ac5bfb1d462a30de82bb178defcd206d8a4a37c44f34b34616ae6c6c83ac7cc2df5a9ebfb994a98b984e51970e2d5b3312ddc9e45db3c1458f25c";
 // Register a new user
 router.post("/register", (req, res) => {
   console.log("Registering user:", req.body);
