@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const db = require("../db");
+const { dbGet, dbRun } = require("../db");
 
 const router = express.Router();
 const saltRounds = 10; //the number of salt rounds to use for hashing
@@ -23,7 +23,7 @@ router.post("/register", (req, res) => {
     }
 
     const sql = "INSERT INTO users (name, email, password) VALUES (?, ?, ?)";
-    db.run(sql, [name, email, hash], function (err) {
+    dbRun(sql, [name, email, hash], function (err) {
       if (err) {
         if (err.message.includes("UNIQUE constraint failed")) {
           return res.status(409).json({ message: "Email already exists" });
@@ -36,7 +36,7 @@ router.post("/register", (req, res) => {
 });
 
 // Login a user
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -46,10 +46,8 @@ router.post("/login", (req, res) => {
   }
 
   const sql = "SELECT * FROM users WHERE email = ?";
-  db.get(sql, [email], (err, user) => {
-    if (err) {
-      return res.status(500).json({ message: "Server error" });
-    }
+  try {
+    const user = await dbGet(sql, [email]);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -65,7 +63,10 @@ router.post("/login", (req, res) => {
       console.log("Generated token:", token);
       res.json({ token });
     });
-  });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
 });
 
 module.exports = router;
