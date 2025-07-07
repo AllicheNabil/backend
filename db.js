@@ -138,7 +138,7 @@ db.serialize(() => {
         FOREIGN KEY (patient_id) REFERENCES patients (id),
         FOREIGN KEY (medication_id) REFERENCES medications (id),
         FOREIGN KEY (userId) REFERENCES users (id)
-    )`); ///
+    )`); /////
 });
 
 module.exports = { db, dbGet, dbAll, dbRun };
