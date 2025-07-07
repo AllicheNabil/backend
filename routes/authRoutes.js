@@ -33,6 +33,7 @@ router.post("/register", async (req, res) => {
 
 // Login a user
 router.post("/login", async (req, res) => {
+  console.log("Logging in user:", req.body);
   const { email, password } = req.body;
 
   if (!email || !password) {
