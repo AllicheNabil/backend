@@ -15,12 +15,19 @@ const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
 const PORT = process.env.PORT || 3000;
+
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Middleware pour parser les corps de requête JSON
 app.use(express.json());
-
-// Middleware CORS pour permettre à votre application Flutter de se connecter
-// Pour le développement, '*' est acceptable. Pour la production, spécifiez des origines permises.
-app.use(cors({ origin: "*" }));
 
 // Servir les fichiers statiques du dossier 'uploads'
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
