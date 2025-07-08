@@ -16,7 +16,7 @@ const server = http.createServer(app); // Créez un serveur HTTP à partir de l'
 const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] },
 });
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 // Middleware pour parser les corps de requête JSON
 app.use(express.json());
 

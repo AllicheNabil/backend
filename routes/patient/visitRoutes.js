@@ -21,7 +21,7 @@ router.post("/", async (req, res) => {
   }
 
   const query = `
-    INSERT INTO visits (patient_id, visit_reason, visit_weight, visit_weight_percentile, visit_height, visit_height_percentile, visit_head_circumference, visit_head_circumference_percentile, visit_bmi, visit_physical_examination, visit_diagnosis, visit_date, visit_hour, userId)
+    INSERT INTO visits (patient_id, reason, weight, weight_percentile, height, height_percentile, head_circumference, head_circumference_percentile, bmi, physical_examination, diagnosis, visit_date, visit_hour, userId)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   const values = [
@@ -43,12 +43,10 @@ router.post("/", async (req, res) => {
 
   try {
     const result = await dbRun(query, values);
-    res
-      .status(201)
-      .json({
-        visit_id: result.lastID,
-        message: "Visite ajoutée avec succès.",
-      });
+    res.status(201).json({
+      visit_id: result.lastID,
+      message: "Visite ajoutée avec succès.",
+    });
   } catch (err) {
     console.error("Error inserting visit:", err.message);
     res.status(500).json({ error: err.message });

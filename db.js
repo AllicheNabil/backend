@@ -76,14 +76,27 @@ db.serialize(() => {
         FOREIGN KEY (userId) REFERENCES users (id)
     )`);
 
+  // Drop tables if they exist
+  db.run(`DROP TABLE IF EXISTS visits`);
+  db.run(`DROP TABLE IF EXISTS medications`);
+  db.run(`DROP TABLE IF EXISTS lab_tests`);
+
   // Create Visits table
   db.run(`CREATE TABLE IF NOT EXISTS visits (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        patient_id INTEGER,
-        visit_date TEXT,
         reason TEXT,
+        physical_examination TEXT,
+        weight TEXT,
+        weight_percentile TEXT,
+        height TEXT,
+        height_percentile TEXT,
+        head_circumference TEXT,
+        head_circumference_percentile TEXT,
+        bmi TEXT,
         diagnosis TEXT,
-        notes TEXT,
+        visit_date TEXT,
+        visit_hour TEXT,
+        patient_id INTEGER,
         userId INTEGER,
         FOREIGN KEY (patient_id) REFERENCES patients (id),
         FOREIGN KEY (userId) REFERENCES users (id)
@@ -115,30 +128,28 @@ db.serialize(() => {
   // Create Lab Tests table
   db.run(`CREATE TABLE IF NOT EXISTS lab_tests (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lab_test_name TEXT,
+        lab_test_date TEXT,
         patient_id INTEGER,
-        test_name TEXT,
-        test_date TEXT,
-        results TEXT,
         userId INTEGER,
         FOREIGN KEY (patient_id) REFERENCES patients (id),
         FOREIGN KEY (userId) REFERENCES users (id)
     )`);
 
-  // Create Prescriptions table
+  // Create Medications table
   db.run(`CREATE TABLE IF NOT EXISTS medications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        medication_name TEXT,
+        medication_date TEXT,
+        medication_duration TEXT,
+        dosage_form TEXT,
+        times_per_day TEXT,
+        amount TEXT,
         patient_id INTEGER,
-        medication_id INTEGER,
-        dosage TEXT,
-        frequency TEXT,
-        start_date TEXT,
-        end_date TEXT,
-        notes TEXT,
         userId INTEGER,
         FOREIGN KEY (patient_id) REFERENCES patients (id),
-        FOREIGN KEY (medication_id) REFERENCES medications (id),
         FOREIGN KEY (userId) REFERENCES users (id)
-    )`); /////
+    )`);
 });
 
 module.exports = { db, dbGet, dbAll, dbRun };
